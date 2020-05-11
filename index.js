@@ -1,31 +1,57 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+const express = require("express");
+const bodyParser = require("body-parser");
 const fs = require("fs");
 const Discord = require("discord.js");
 const Client = require("./client/Client");
 const { prefix, token } = require("./config.json");
+const WebSocket = require("ws");
 
 const app = express();
 const client = new Client();
 client.commands = new Discord.Collection();
 
 const server = app.listen(3000, () => {
-  console.log('listening on *:3000');
+  console.log("listening on *:3000");
 });
 
-app.use(bodyParser.urlencoded({ extended: false } ));
+const wss = new WebSocket.Server({ server });
+
+wss.on("connection", (ws) => {
+  console.log("New connection initiated");
+  ws.on("message", (message) => {
+    const msg = JSON.parse(message);
+    switch (msg) {
+      case "connected":
+        console.log("A new call has connected ");
+        break;
+      case "start":
+        console.log("started media streaming" + msg.streamSid);
+        break;
+      case "connected":
+        console.log("A new call has connected ");
+        break;
+      default:
+        break;
+    }
+  });
+});
+
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Set Express routes.
-app.post('/events', (req, res) => {
+app.get("/", (req, res) => {
+  res.send("SERVER WORKING");
+});
+
+app.post("/events", (req, res) => {
   let to = req.body.to;
   let fromNumber = req.body.from;
   let callStatus = req.body.CallStatus;
   let callSid = req.body.callSid;
 
-console.log(to, fromNumber, callStatus, callSid);
-  res.send('Event received');
+  console.log(to, fromNumber, callStatus, callSid);
+  res.send("Event received");
 });
-
 
 const commandFiles = fs
   .readdirSync("./commands")
